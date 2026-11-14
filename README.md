@@ -62,12 +62,20 @@ Differences from the replay:
 
 ## Replay a recorded run
 
+Inside the devenv shell (`devenv shell` or `direnv allow`), where `pi` and the `replay` command
+come from:
+
 ```
-uv run scripts/download_trajectories.py        # datasets -> HF cache
-uv run scripts/convert_runs.py                 # 4 recorded runs -> replays/*.json (2 resolved, 2 not)
-scripts/replay.sh replays/<traj_id>.json       # replay one in pi (pi comes from devenv)
+replay                      # a random replayable run from the good-runs subset
+replay --list [text]        # the 197 replayable good runs, optionally filtered
+replay <traj_id>            # that run, converted on the fly
+replay replays/<id>.json    # an already converted run
 cat logs/verdicts.jsonl
 ```
+
+`replay` is a devenv script for `scripts/replay.sh`. A run named by id is looked up in
+`subset/good_runs.parquet` first (all shards, no dataset download), then in the first raw shard.
+`uv run scripts/convert_runs.py` still converts a balanced sample of 4 from the first shard.
 
 Keys in the review screen: `a` approve, `d` deny, arrows / PgUp / PgDn / Space to scroll, Esc aborts
 (the submit is then blocked).
@@ -145,8 +153,10 @@ tool and takes the code change from `git diff HEAD`. That path is untested.
 | Mixed content shapes, `\r\n`, `OBSERVATION:` prefix | all | Normalised |
 
 `resolved` may be misaligned in the same way as `patch`: runs with no source edit through the
-editor tool are marked resolved as often (49%) as runs with one (46%). Not verified further; it is
-logged but should be re-derived before being used as ground truth.
+editor tool are marked resolved as often (49%) as runs with one (46%). Against that, an LLM
+grader that never sees the label agrees with it on 76% of graded runs (`evals/`, 400-run sample),
+where a shuffled label would give about 50%. Neither is a re-run of the tests; the label is logged
+but should be re-derived before being used as ground truth.
 
 ## Good-runs subset
 
@@ -166,6 +176,28 @@ tool calls and a real submit); 151 use the text tool-call format. 145 are repeat
 instance already in the subset, and for 62 the SWE-smith problem statement differs from the one in
 the agent's prompt (`task_matches_prompt`). The subset is not a random sample: the match rule
 favours runs whose changes are visible in the transcript.
+
+### Using the subset
+
+The parquet is a data file; open it with one of these:
+
+- **Browse it:** `run` (see [Trajectory viewer](#trajectory-viewer)). It is the viewer's default
+  data.
+- **Query it** with duckdb, for example runs by model and label:
+  ```
+  uv run python -c "
+  import duckdb
+  print(duckdb.sql(\"select model, resolved, count(*) from 'subset/good_runs.parquet' group by all order by all\"))
+  "
+  ```
+- **Rebuild it** from the datasets: `uv run scripts/build_subset.py` (a few minutes).
+
+Columns: the trajectory's own (`messages`, `instance_id`, `resolved`, `model`, `traj_id`, `patch`),
+the task's from SWE-smith (`repo`, `problem_statement`, `bug_patch`, `FAIL_TO_PASS`,
+`PASS_TO_PASS`, `image_name`), and the check columns that are also in the CSV.
+
+To review one of these runs in the gate, use `replay <traj_id>` (see
+[Replay a recorded run](#replay-a-recorded-run)); 197 of the 350 are replayable.
 
 ## Trajectory viewer
 

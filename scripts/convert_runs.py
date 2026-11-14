@@ -22,7 +22,8 @@ happened. The gate fires on `gate.tool_call_id`.
 Usage:
     uv run scripts/convert_runs.py                 # balanced sample of 4
     uv run scripts/convert_runs.py --n 6 --seed 1
-    uv run scripts/convert_runs.py --traj-id <id>  # one specific run
+    uv run scripts/convert_runs.py --traj-id <id>  # one specific run (looked up in the
+                                                   # good-runs subset first, then the first shard)
     uv run scripts/convert_runs.py --stats         # data problems only
 """
 
@@ -37,6 +38,7 @@ import duckdb
 from huggingface_hub import snapshot_download
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "replays"
+SUBSET = OUT_DIR.parent / "subset" / "good_runs.parquet"
 DIFF_RE = re.compile(r"<diff>\n(.*?)\n?</diff>", re.S)
 # Share of a patch's added lines that must appear in the trajectory.
 PATCH_MATCH_MIN = 0.9
@@ -221,6 +223,22 @@ def main() -> None:
                     help="also sample runs the harness stopped without a submit call")
     ap.add_argument("--stats", action="store_true", help="print data problems and exit")
     args = ap.parse_args()
+    con = duckdb.connect()
+
+    # Runs named by id come from the good-runs subset when it has them: it
+    # spans all shards and needs no dataset download.
+    rows: list[dict] = []
+    if args.traj_id and SUBSET.exists():
+        cur = con.execute(
+            f"select messages, instance_id, resolved, model, traj_id, patch, problem_statement, repo "
+            f"from '{SUBSET}' where traj_id in ?", [args.traj_id])
+        names = [d[0] for d in cur.description]
+        rows = [dict(zip(names, r)) for r in cur.fetchall()]
+        missing = [i for i in args.traj_id if i not in {r["traj_id"] for r in rows}]
+        if not missing:
+            write_runs(rows, args)
+            return
+        args.traj_id = missing
 
     traj_dir = snapshot_download("SWE-bench/SWE-smith-trajectories", repo_type="dataset")
     task_dir = snapshot_download("SWE-bench/SWE-smith", repo_type="dataset")
@@ -233,7 +251,6 @@ def main() -> None:
                           any_value(repo) repo
                    from '{tasks}' group by 1) s using (instance_id)
     """
-    con = duckdb.connect()
 
     if args.stats:
         rel = con.sql(f"""
@@ -268,8 +285,11 @@ def main() -> None:
         # Deterministic shuffle; over-fetch so unusable rows can be skipped.
         cur = con.execute(f"select {cols} {base} order by hash(t.traj_id || '{args.seed}') limit 400")
     names = [d[0] for d in cur.description]
-    rows = [dict(zip(names, r)) for r in cur.fetchall()]
+    rows += [dict(zip(names, r)) for r in cur.fetchall()]
+    write_runs(rows, args)
 
+
+def write_runs(rows: list[dict], args) -> None:
     want = {True: (args.n + 1) // 2, False: args.n // 2}
     OUT_DIR.mkdir(exist_ok=True)
     skipped: dict[str, int] = {}

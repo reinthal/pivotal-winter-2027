@@ -31,10 +31,17 @@
     cd "$DEVENV_ROOT" && exec uv run scripts/serve_viewer.py "$@"
   '';
 
+  # `replay` replays a recorded run in pi with the commit-first review gate.
+  # No argument: a random good run. Or `replay <traj_id>`, `replay --list`.
+  scripts.replay.exec = ''
+    exec "$DEVENV_ROOT/scripts/replay.sh" "$@"
+  '';
+
   # https://devenv.sh/basics/
   enterShell = ''
     hello         # Run scripts directly
     echo "Type 'run' to start the trajectory review UI (http://127.0.0.1:8765/)"
+    echo "Type 'replay' to review a recorded run in pi with the commit-first gate"
     git --version # Use packages
   '';
 
