@@ -9,7 +9,7 @@
   env.GREET = "pivotal winter 2027 workstest";
 
   # https://devenv.sh/packages/
-  packages = with pkgs; [pi git];
+  packages = with pkgs; [pi-coding-agent];
 
   # https://devenv.sh/languages/
   # languages.rust.enable = true;
