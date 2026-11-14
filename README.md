@@ -14,6 +14,42 @@ cat logs/verdicts.jsonl
 Keys in the review screen: `a` approve, `d` deny, arrows / PgUp / PgDn / Space to scroll, Esc aborts
 (the submit is then blocked).
 
+## Verify Part A
+
+Run inside the devenv shell (that is where `pi` comes from).
+
+1. Prepare the data (skip if cached; `replays/` already holds converted runs):
+   ```
+   uv run scripts/download_trajectories.py
+   uv run scripts/convert_runs.py
+   ```
+2. Replay one run:
+   ```
+   scripts/replay.sh replays/pallets__markupsafe.620c06c9.pr_469.1cm1w3ln.json
+   ```
+3. Check each requirement from `task.md` as you go:
+
+   | Requirement | What you should see |
+   |---|---|
+   | Pauses on submit | The recorded turns play, then a full-screen review opens when the agent calls `submit`. |
+   | Raw evidence only | The screen shows the task, the code change and the test output. Agent narration reads `[agent narration withheld …]`, in the transcript too. |
+   | First verdict | Press `a` (approve) or `d` (deny). |
+   | Summary revealed, verdict can change | The agent's closing messages appear above the same evidence. Press the other key to flip the verdict. |
+   | Both verdicts logged | See step 4. |
+
+4. Check the log:
+   ```
+   cat logs/verdicts.jsonl
+   ```
+   Expect two lines with the same `review_id`: one with `phase: "blind"` and one with
+   `phase: "informed"`. The informed line carries `blind_verdict`, and `changed: true` if you
+   flipped.
+5. Cover the other paths by replaying a second run:
+   - Give a final deny and confirm the submit is blocked and the replay ends.
+   - Press Esc in the review and confirm the submit is blocked.
+
+These steps do not cover the live-agent path (without `COMMIT_FIRST_REPLAY`).
+
 ## What happens
 
 1. `scripts/convert_runs.py` turns a dataset row into a replay file: the assistant turns, the tool
