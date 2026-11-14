@@ -287,6 +287,6 @@
   "diff_source": "submit review output"
  },
  "data_notes": [
-  "diff is the pre-cleanup review diff; may include the agent's scratch scripts"
+  "dataset patch is not this run's; diff is the pre-cleanup review diff, may include scratch scripts"
  ]
 }

@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trajectory viewer</title>
+<link rel="icon" href="data:,">
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #f6f7f9; --panel: #ffffff; --panel2: #f0f2f5; --border: #d9dde3;
+  --text: #1c2026; --muted: #667080; --accent: #2f6fde; --accent-bg: #e6eefc;
+  --ok: #1a7f43; --ok-bg: #dff3e6; --bad: #b3261e; --bad-bg: #fbe4e2;
+  --warn: #8a5a00; --warn-bg: #fff3d6;
+  --k-bash: #2f6fde; --k-edit: #b25c00; --k-create: #0f8a7e; --k-view: #6b7280;
+  --k-submit: #1a7f43; --k-exit: #b3261e; --k-none: #8b5fbf; --k-other: #555;
+  --add-bg: #e2f6e7; --add-fg: #14602f; --del-bg: #fde7e5; --del-fg: #9a1c15;
+  --hunk: #6a4fb3; --code-bg: #f3f4f7;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a; --panel: #1c1f25; --panel2: #23272e; --border: #353a44;
+    --text: #e4e7ec; --muted: #98a1b0; --accent: #7aa7f7; --accent-bg: #223250;
+    --ok: #62c98a; --ok-bg: #173524; --bad: #f08a80; --bad-bg: #452220;
+    --warn: #e7b955; --warn-bg: #3d3118;
+    --k-bash: #7aa7f7; --k-edit: #f0a04b; --k-create: #4fc9bb; --k-view: #a0a8b5;
+    --k-submit: #62c98a; --k-exit: #f08a80; --k-none: #b99be6; --k-other: #bbb;
+    --add-bg: #17331f; --add-fg: #8fdca8; --del-bg: #41201d; --del-fg: #f3a199;
+    --hunk: #b9a2f2; --code-bg: #15181d;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: .45; cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+kbd { font: 11px var(--mono); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--panel2); }
+
+#app { display: flex; height: 100%; }
+#sidebar { width: 340px; flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: var(--panel); }
+#app.nosidebar #sidebar { display: none; }
+#sidebar header { padding: 12px; border-bottom: 1px solid var(--border); display: grid; gap: 8px; }
+#sidebar h1 { font-size: 15px; margin: 0; }
+#q { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.filters { display: flex; gap: 6px; }
+.filters select { flex: 1; min-width: 0; padding: 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+#count { color: var(--muted); font-size: 12px; }
+#list { overflow-y: auto; flex: 1; }
+.item { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--border); border-left: 3px solid transparent; border-radius: 0; padding: 8px 10px 8px 9px; background: none; }
+.item:hover { background: var(--panel2); }
+.item.sel { background: var(--accent-bg); border-left-color: var(--accent); }
+.item .name { font: 12px var(--mono); overflow-wrap: anywhere; }
+.item .meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+#more { margin: 10px; width: calc(100% - 20px); }
+
+.badge { display: inline-block; font-size: 11px; line-height: 1.5; padding: 0 7px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+.badge.ok { color: var(--ok); background: var(--ok-bg); border-color: transparent; }
+.badge.bad { color: var(--bad); background: var(--bad-bg); border-color: transparent; }
+.badge.warn { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
+
+#main { flex: 1; min-width: 0; overflow-y: auto; }
+#content { padding: 14px 18px 60px; max-width: 1300px; }
+.empty { color: var(--muted); padding: 60px 20px; text-align: center; }
+.runhead { display: flex; gap: 10px; align-items: flex-start; }
+.runhead h2 { margin: 0; font: 600 16px var(--mono); overflow-wrap: anywhere; }
+.sub { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.banner { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: 8px 12px; margin: 8px 0; }
+.notes { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 6px 12px; margin: 8px 0; font-size: 13px; }
+.notes ul { margin: 2px 0; padding-left: 18px; }
+
+details.sec { border: 1px solid var(--border); border-radius: 8px; background: var(--panel); margin: 6px 0; }
+details.sec > summary { cursor: pointer; padding: 7px 12px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; }
+details.sec > summary .hint { font-weight: 400; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+details.sec > .body { padding: 0 12px 12px; }
+.prose { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; font: inherit; }
+
+.stripbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0 6px; }
+.stripbar h3 { margin: 0; font-size: 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--muted); margin-left: auto; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--k); margin-right: 4px; vertical-align: -1px; }
+#strip { display: flex; gap: 6px; overflow-x: auto; padding: 8px 4px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
+.chip { --k: var(--k-other); position: relative; flex: none; min-width: 58px; padding: 4px 8px 5px; text-align: center; border: 1px solid var(--border); border-top: 4px solid var(--k); border-radius: 6px; background: var(--panel); }
+.chip .n { display: block; font-weight: 600; font-size: 13px; }
+.chip .k { display: block; font: 11px var(--mono); color: var(--k); }
+.chip.sel { background: var(--accent-bg); border-color: var(--accent); border-top-color: var(--k); box-shadow: 0 0 0 2px var(--accent); }
+.chip.k-submit { border-radius: 16px; }
+.chip.k-exit { border-style: dashed; border-top-style: solid; }
+.chip.k-none { border-top-style: dotted; }
+.chip.gate { border-color: var(--k-submit); border-width: 2px; border-top-width: 4px; }
+.chip.err::after { content: "!"; position: absolute; top: -9px; right: -5px; width: 15px; height: 15px; border-radius: 50%; background: var(--bad); color: #fff; font: 700 11px/15px system-ui, sans-serif; }
+.k-bash { --k: var(--k-bash); } .k-edit { --k: var(--k-edit); } .k-create { --k: var(--k-create); }
+.k-view { --k: var(--k-view); } .k-submit { --k: var(--k-submit); } .k-exit { --k: var(--k-exit); }
+.k-none { --k: var(--k-none); } .k-other { --k: var(--k-other); }
+
+.stephead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 8px; }
+.stephead h3 { margin: 0; font-size: 16px; }
+.stephead .nav { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.kind { font: 12px var(--mono); color: var(--k); border: 1px solid var(--k); border-radius: 4px; padding: 0 6px; }
+.card { border: 1px solid var(--border); border-radius: 8px; background: var(--panel); margin: 8px 0; }
+.card > .title { padding: 6px 12px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.card > .title .path { font: 12px var(--mono); font-weight: 400; overflow-wrap: anywhere; }
+.card > .body { padding: 10px 12px; }
+.card.err { border-color: var(--bad); }
+.muted { color: var(--muted); }
+.kv { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+.kv code { font: 12px var(--mono); color: var(--text); }
+
+.code { position: relative; }
+.code pre { margin: 0; padding: 8px 10px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; font: 12px/1.45 var(--mono); overflow-x: auto; white-space: pre; tab-size: 4; }
+.code.wrap pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.code.clamped pre { max-height: 26em; overflow-y: hidden; }
+.code.clamped::after { content: ""; position: absolute; left: 1px; right: 1px; bottom: 30px; height: 40px; background: linear-gradient(transparent, var(--code-bg)); pointer-events: none; }
+.code .toggle { margin-top: 4px; font-size: 12px; }
+.code .copy { position: absolute; top: 4px; right: 4px; font-size: 11px; padding: 1px 6px; opacity: 0; }
+.code:hover .copy, .code .copy:focus { opacity: 1; }
+.diff span { display: block; padding: 0 4px; margin: 0 -4px; min-height: 1.45em; }
+.diff .add { background: var(--add-bg); color: var(--add-fg); }
+.diff .del { background: var(--del-bg); color: var(--del-fg); }
+.diff .hunk { color: var(--hunk); }
+.diff .meta { color: var(--muted); font-weight: 600; }
+#toggleSide { flex: none; }
+@media (max-width: 800px) { #sidebar { width: 100%; } #app:not(.nosidebar) #main { display: none; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <header>
+      <h1>Trajectories</h1>
+      <input id="q" type="search" placeholder="Search instance / trajectory id…" autocomplete="off" spellcheck="false">
+      <div class="filters">
+        <select id="fResolved" title="Dataset 'resolved' label">
+          <option value="">Resolved: any</option><option value="1">Resolved</option><option value="0">Unresolved</option>
+        </select>
+        <select id="fStatus" title="How the run ended">
+          <option value="">Ending: any</option><option value="submit">Agent submitted</option>
+          <option value="exit">Harness exit</option><option value="rejected">Not convertible</option>
+        </select>
+      </div>
+      <div class="filters"><select id="fModel"><option value="">Model: any</option></select></div>
+      <div id="count">Loading…</div>
+    </header>
+    <div id="list"></div>
+  </aside>
+  <main id="main"><div id="content"><div class="empty">Loading…</div></div></main>
+</div>
+
+<script>
+"use strict";
+// All trajectory content is untrusted: it only ever reaches the DOM through
+// textContent / createTextNode / setAttribute("title"), never innerHTML.
+function el(tag, props, ...kids) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") node.className = v;
+    else if (k === "onclick") node.addEventListener("click", v);
+    else if (k === "open" || k === "disabled") node[k] = !!v;
+    else node.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    node.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return node;
+}
+const $ = (id) => document.getElementById(id);
+async function api(path) {
+  const res = await fetch(path);
+  const body = await res.json().catch(() => ({ error: "bad response" }));
+  if (!res.ok) throw new Error(body.error || res.statusText);
+  return body;
+}
+
+// ---------- trajectory list ----------
+const PAGE = 100;
+const list = { items: [], matched: 0, total: 0, seq: 0, pollTimer: null, modelsLoaded: false };
+let currentId = null;
+
+function listQuery(offset, limit) {
+  const p = new URLSearchParams({ q: $("q").value.trim(), resolved: $("fResolved").value,
+    status: $("fStatus").value, model: $("fModel").value, offset, limit });
+  return "/api/trajectories?" + p;
+}
+async function loadList({ append = false, keepSize = false } = {}) {
+  const seq = ++list.seq;
+  clearTimeout(list.pollTimer);
+  const offset = append ? list.items.length : 0;
+  const limit = keepSize ? Math.max(PAGE, list.items.length) : PAGE;
+  let data;
+  try { data = await api(listQuery(offset, Math.min(limit, 500))); }
+  catch (e) { $("count").textContent = "Could not load list: " + e.message; return; }
+  if (seq !== list.seq) return;            // a newer request superseded this one
+  list.items = append ? list.items.concat(data.items) : data.items;
+  list.matched = data.matched; list.total = data.total;
+  if (!list.modelsLoaded) {
+    for (const m of data.models) $("fModel").append(el("option", { value: m }, m));
+    list.modelsLoaded = true;
+  }
+  renderList(data.indexing);
+  // The server classifies run endings in the background for a few seconds.
+  if (data.indexing) list.pollTimer = setTimeout(() => loadList({ keepSize: true }), 1500);
+  if (!currentId && !location.hash && list.items.length) openRun(list.items[0].traj_id);
+}
+function statusBadge(it) {
+  if (it.status === "submit") return el("span", { class: "badge", title: "The agent called submit" }, "submitted");
+  if (it.status === "exit") return el("span", { class: "badge warn", title: "The harness stopped the run; no submit call" }, "harness exit");
+  if (it.status === "rejected") return el("span", { class: "badge bad", title: "convert() rejected this row: " + it.reason }, "not convertible");
+  return el("span", { class: "badge", title: "Still classifying…" }, "…");
+}
+function resolvedBadge(resolved) {
+  return el("span", { class: "badge " + (resolved ? "ok" : "bad"),
+    title: "Dataset 'resolved' label. The README notes it may be misaligned with rows." },
+    resolved ? "✓ resolved" : "✗ unresolved");
+}
+function renderList(indexing) {
+  const box = $("list");
+  const top = box.scrollTop;
+  box.replaceChildren();
+  for (const it of list.items) {
+    box.append(el("button", { class: "item" + (it.traj_id === currentId ? " sel" : ""), "data-id": it.traj_id,
+        onclick: () => openRun(it.traj_id) },
+      el("div", { class: "name" }, it.instance_id),
+      el("div", { class: "meta" }, resolvedBadge(it.resolved), el("span", { class: "badge" }, it.steps + " steps"),
+        statusBadge(it), it.reason && el("span", { class: "badge", title: it.reason }, it.reason))));
+  }
+  if (list.items.length < list.matched)
+    box.append(el("button", { id: "more", onclick: () => loadList({ append: true }) },
+      `Load more (${list.matched - list.items.length} left)`));
+  if (!list.items.length) box.append(el("div", { class: "empty" }, indexing && $("fStatus").value
+    ? "Still classifying runs…" : "No trajectories match."));
+  box.scrollTop = top;
+  $("count").textContent = `${list.matched} of ${list.total} trajectories` + (indexing ? " · classifying endings…" : "");
+}
+function markSelected() {
+  for (const b of $("list").querySelectorAll(".item")) b.classList.toggle("sel", b.dataset.id === currentId);
+}
+let qTimer;
+$("q").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(loadList, 200); });
+for (const id of ["fResolved", "fStatus", "fModel"]) $(id).addEventListener("change", () => loadList());
+$("list").addEventListener("scroll", () => {
+  const box = $("list"), more = $("more");
+  if (more && !more.disabled && box.scrollTop + box.clientHeight > box.scrollHeight - 200) { more.disabled = true; more.click(); }
+});
+
+// ---------- code blocks ----------
+function codeBlock(content, { wrap = false, maxLines = 24, copyText = null } = {}) {
+  // content: a string, or an array of {cls, text} diff lines.
+  const isDiff = Array.isArray(content);
+  const pre = el("pre", { class: isDiff ? "diff" : null });
+  let nLines, raw;
+  if (isDiff) {
+    for (const l of content) pre.append(el("span", { class: l.cls }, l.text));
+    nLines = content.length; raw = copyText ?? content.map((l) => l.text).join("\n");
+  } else {
+    pre.textContent = content; raw = content;
+    nLines = content.split("\n").length + (wrap ? Math.floor(content.length / 160) : 0);
+  }
+  const box = el("div", { class: "code" + (wrap ? " wrap" : "") }, pre);
+  const copy = el("button", { class: "copy", title: "Copy to clipboard", onclick: async () => {
+    try { await navigator.clipboard.writeText(raw); copy.textContent = "copied"; }
+    catch { copy.textContent = "copy failed"; }
+    setTimeout(() => (copy.textContent = "copy"), 1200);
+  } }, "copy");
+  box.append(copy);
+  if (nLines > maxLines) {
+    box.classList.add("clamped");
+    const label = () => box.classList.contains("clamped") ? `Show all (${nLines.toLocaleString()} lines)` : "Collapse";
+    const btn = el("button", { class: "toggle", onclick: () => { box.classList.toggle("clamped"); btn.textContent = label(); } });
+    btn.textContent = label();
+    box.append(btn);
+  }
+  return box;
+}
+function diffLines(text) {
+  return text.replace(/\n$/, "").split("\n").map((t) => ({
+    text: t,
+    cls: /^(diff --git |index |new file mode|deleted file mode|similarity index|rename |\+\+\+ |--- )/.test(t) ? "meta"
+       : t.startsWith("@@") ? "hunk" : t.startsWith("+") ? "add" : t.startsWith("-") ? "del" : null,
+  }));
+}
+const str = (v) => (v == null ? "" : typeof v === "string" ? v : JSON.stringify(v, null, 2));
+
+// ---------- step model ----------
+const KIND_LABEL = { bash: "bash", edit: "edit", create: "create", view: "view", submit: "submit",
+  exit: "exit", none: "no tool", other: "other" };
+const KIND_HELP = { bash: "shell command", edit: "edit a file", create: "create a file", view: "view a file / directory",
+  submit: "submit call", exit: "harness stopped the run", none: "text only, no tool call", other: "other tool" };
+function callKind(c) {
+  const a = c.arguments || {};
+  if (c.name === "bash") return "bash";
+  if (c.name === "submit") return a.forced_exit ? "exit" : "submit";
+  if (c.name === "str_replace_editor")
+    return a.command === "view" ? "view" : a.command === "create" ? "create" : "edit";
+  return "other";
+}
+// Heuristic only: the recording has no exit codes.
+function looksFailed(kind, c, out) {
+  if (out == null) return false;
+  const a = c.arguments || {};
+  if (kind === "edit") return a.command !== "undo_edit" && !out.includes("has been edited");
+  if (kind === "create") return !out.includes("File created successfully");
+  if (kind === "view") return /^(The path .* does not exist|Invalid `|.*Error)/.test(out.slice(0, 300));
+  if (kind === "bash") return /Traceback \(most recent call last\)|command not found|No such file or directory|was cancelled because it took more than|^E {2,}\S|^(FAILED|ERROR) |\b\d+ (failed|errors?)\b.* in [\d.]+s/m.test(out);
+  return false;
+}
+function summarize(kind, c) {
+  const a = c.arguments || {};
+  if (kind === "bash") return str(a.command).split("\n")[0];
+  if (kind === "exit") return str(a.forced_exit);
+  if (c.name === "str_replace_editor") return `${a.command || ""} ${a.path || ""}`.trim();
+  return c.name;
+}
+function buildSteps(run) {
+  const gateId = run.gate && run.gate.tool_call_id;
+  return run.turns.map((t, i) => {
+    const calls = (t.tool_calls || []).map((c) => {
+      const kind = callKind(c), out = run.results[c.id];
+      return { ...c, kind, out, failed: looksFailed(kind, c, out), gate: gateId != null && c.id === gateId };
+    });
+    const loose = t.observations || [];      // raw view only: outputs not tied to a call id
+    let kind = calls.length ? calls[0].kind : (t.text || "").startsWith("Exit due to") ? "exit" : "none";
+    const step = { n: i + 1, text: t.text || "", calls, loose, kind,
+      gate: calls.some((c) => c.gate), failed: calls.some((c) => c.failed) };
+    if (!step.failed && calls.length === 1 && loose.length)   // raw view: single call + loose output
+      step.failed = calls[0].failed = looksFailed(kind, calls[0], loose.join("\n"));
+    step.summary = calls.length ? summarize(kind, calls[0]) : step.text.split("\n")[0];
+    return step;
+  });
+}
+
+// ---------- run view ----------
+let run = null, steps = [], cur = 0;
+
+async function openRun(id, stepNo) {
+  currentId = id; markSelected();
+  const content = $("content");
+  content.replaceChildren(el("div", { class: "empty" }, "Loading " + id + " …"));
+  let data;
+  try { data = await api("/api/trajectory?id=" + encodeURIComponent(id)); }
+  catch (e) {
+    if (currentId === id) content.replaceChildren(el("div", { class: "banner" }, "Could not load trajectory: " + e.message));
+    return;
+  }
+  if (currentId !== id) return;
+  run = data; steps = buildSteps(run);
+  const gateIdx = steps.findIndex((s) => s.gate);
+  cur = Math.min(Math.max((stepNo || 1) - 1, 0), Math.max(steps.length - 1, 0));
+  renderRun(gateIdx);
+  $("main").scrollTop = 0;
+}
+function section(title, hint, body, open) {
+  return el("details", { class: "sec", open }, el("summary", {}, title, el("span", { class: "hint" }, hint)),
+    el("div", { class: "body" }, body));
+}
+function renderRun(gateIdx) {
+  const forced = run.gate && run.gate.tool_call_id === "forced_exit";
+  const exitStep = steps.find((s) => s.kind === "exit");
+  const ending = run.rejected ? null : forced
+    ? el("span", { class: "badge warn", title: "No submit call; the harness stopped the agent" },
+        "harness exit: " + (exitStep ? exitStep.summary : ""))
+    : el("span", { class: "badge", title: "The agent called submit" }, "agent submitted");
+  const head = el("div", {},
+    el("div", { class: "runhead" },
+      el("button", { id: "toggleSide", title: "Show / hide the trajectory list",
+        onclick: () => $("app").classList.toggle("nosidebar") }, "☰"),
+      el("div", {}, el("h2", {}, run.instance_id), el("div", { class: "sub" }, "trajectory " + run.traj_id))),
+    el("div", { class: "badges" }, resolvedBadge(run.resolved),
+      el("span", { class: "badge" }, run.model),
+      el("span", { class: "badge" }, steps.length + " steps"),
+      run.repo && el("span", { class: "badge" }, run.repo), ending,
+      run.rejected && el("span", { class: "badge bad" }, "not convertible")),
+    run.rejected && el("div", { class: "banner" },
+      el("strong", {}, "convert() rejected this run: "), run.rejected,
+      ". It cannot be replayed; the steps below are a best-effort raw view with no gate and no code change."),
+    run.data_notes && run.data_notes.length
+      ? el("div", { class: "notes" }, el("strong", {}, "Data notes"), el("ul", {}, run.data_notes.map((n) => el("li", {}, n))))
+      : null);
+
+  if (run.task) head.append(section("Task", run.task.split("\n").find((l) => l.trim()) || "",
+    [el("p", { class: "kv" }, "source: ", el("code", {}, run.task_source || "?")), el("pre", { class: "prose" }, run.task)]));
+  if (run.gate && run.gate.diff) {
+    const lines = diffLines(run.gate.diff);
+    const adds = lines.filter((l) => l.cls === "add").length, dels = lines.filter((l) => l.cls === "del").length;
+    head.append(section("Code change", `+${adds} −${dels} · ${run.gate.diff_source}`,
+      [el("p", { class: "kv" }, "source: ", el("code", {}, run.gate.diff_source),
+         " — taken from the trajectory itself, not the dataset's patch column."),
+       codeBlock(lines, { maxLines: 60, copyText: run.gate.diff })]));
+  }
+  if (run.prompt) head.append(section("Agent prompt", "first user message the agent received",
+    codeBlock(run.prompt, { wrap: true, maxLines: 30 })));
+
+  const kinds = [...new Set(steps.map((s) => s.kind))];
+  const strip = el("div", { id: "strip", role: "tablist", "aria-label": "Steps" }, steps.map((s, i) =>
+    el("button", { class: `chip k-${s.kind}` + (s.gate ? " gate" : "") + (s.failed ? " err" : ""), role: "tab", "data-i": i,
+        title: `Step ${s.n} · ${KIND_LABEL[s.kind]}${s.gate ? " (final submit — review gate)" : ""}${s.failed ? " · output looks like an error" : ""}\n${s.summary.slice(0, 200)}`,
+        onclick: () => select(i) },
+      el("span", { class: "n" }, s.n + (s.gate ? " ★" : "")), el("span", { class: "k" }, KIND_LABEL[s.kind]))));
+  const bar = el("div", { class: "stripbar" }, el("h3", {}, "Steps"),
+    el("span", { class: "muted" }, el("kbd", {}, "←"), " ", el("kbd", {}, "→"), " to move"),
+    gateIdx >= 0 && el("button", { onclick: () => select(gateIdx) }, forced ? "Jump to harness exit ★" : "Jump to final submit ★"),
+    steps.some((s) => s.failed) && el("button", { title: "Next step whose output looks like an error", onclick: () => {
+      const order = steps.map((_, i) => (cur + 1 + i) % steps.length);
+      const next = order.find((i) => steps[i].failed); if (next != null) select(next);
+    } }, "Next error !"),
+    el("div", { class: "legend" }, kinds.map((k) => el("span", { class: "k-" + k, title: KIND_HELP[k] }, el("i"), KIND_LABEL[k])),
+      el("span", { title: "The submit call the review gate fires on" }, "★ gate"),
+      el("span", { title: "Heuristic: the output looks like an error" }, "! error")));
+
+  $("content").replaceChildren(head, bar, strip, el("div", { id: "step" }));
+  if (steps.length) select(cur, true);
+  else $("step").append(el("div", { class: "empty" }, "This run has no assistant turns."));
+}
+
+function select(i, initial) {
+  if (!steps.length) return;
+  cur = Math.min(Math.max(i, 0), steps.length - 1);
+  for (const chip of $("strip").children) {
+    const on = Number(chip.dataset.i) === cur;
+    chip.classList.toggle("sel", on);
+    chip.setAttribute("aria-selected", on);
+    if (on) chip.scrollIntoView({ block: "nearest", inline: "center", behavior: initial ? "instant" : "smooth" });
+  }
+  history.replaceState(null, "", "#" + encodeURIComponent(run.traj_id) + "/" + (cur + 1));
+  renderStep(steps[cur]);
+}
+
+function callCard(c, step) {
+  const a = c.arguments || {};
+  const title = el("div", { class: "title" });
+  const body = el("div", { class: "body" });
+  const rest = { ...a };                       // arguments not rendered specially
+  if (c.kind === "bash") {
+    title.append("Shell command");
+    body.append(codeBlock(str(a.command), { wrap: true, maxLines: 40 }));
+    delete rest.command;
+  } else if (c.name === "str_replace_editor") {
+    title.append({ view: "View", create: "Create file", str_replace: "Edit file", insert: "Insert into file",
+      undo_edit: "Undo edit" }[a.command] || "Editor: " + str(a.command), el("span", { class: "path" }, str(a.path)));
+    if (a.command === "str_replace") {
+      body.append(codeBlock([...str(a.old_str).split("\n").map((t) => ({ cls: "del", text: "-" + t })),
+        ...(a.new_str ? str(a.new_str).split("\n").map((t) => ({ cls: "add", text: "+" + t })) : [])], { maxLines: 60 }));
+    } else if (a.command === "insert") {
+      body.append(el("p", { class: "kv" }, "after line ", el("code", {}, str(a.insert_line))),
+        codeBlock(str(a.new_str).split("\n").map((t) => ({ cls: "add", text: "+" + t })), { maxLines: 60 }));
+    } else if (a.command === "create") {
+      body.append(codeBlock(str(a.file_text).split("\n").map((t) => ({ cls: "add", text: "+" + t })), { maxLines: 30, copyText: str(a.file_text) }));
+    } else if (a.command === "view") {
+      body.append(el("p", { class: "kv" }, a.view_range ? ["lines ", el("code", {}, str(a.view_range))] : "whole file / directory"));
+    }
+    for (const k of ["command", "path", "old_str", "new_str", "insert_line", "file_text", "view_range"]) delete rest[k];
+  } else if (c.kind === "exit") {
+    title.append("Harness exit");
+    body.append(el("p", {}, el("strong", {}, str(a.forced_exit)), ". The agent never called submit: the harness stopped it ",
+      "and auto-submitted whatever change existed. This step is a synthetic submit event."));
+    delete rest.forced_exit;
+  } else if (c.kind === "submit") {
+    title.append(c.gate ? "Submit ★ final" : "Submit");
+    body.append(el("p", { class: "muted" }, c.gate
+      ? "The final submit call: this ends the run, and it is the call the review gate fires on."
+      : run.gate ? "An earlier submit call: the harness answers with a review checklist and the current diff; the run continues."
+      : "Submit call."));
+  } else {
+    title.append("Tool call: ", el("span", { class: "path" }, c.name));
+  }
+  if (Object.keys(rest).length) body.append(el("p", { class: "kv" }, "arguments"), codeBlock(JSON.stringify(rest, null, 2), { wrap: true }));
+  if (c.gate && c.kind === "submit") title.append(el("span", { class: "badge ok" }, "review gate"));
+  if (!body.childNodes.length) body.append(el("span", { class: "muted" }, "no arguments"));
+  return el("div", { class: "card" }, title, body);
+}
+function outputCard(text, failed, label) {
+  const lines = text.split("\n").length;
+  return el("div", { class: "card" + (failed ? " err" : "") },
+    el("div", { class: "title" }, label || "Output",
+      el("span", { class: "muted", style: "font-weight:400" }, `${lines.toLocaleString()} lines · ${text.length.toLocaleString()} chars`),
+      failed && el("span", { class: "badge bad", title: "Heuristic: no exit codes are recorded" }, "looks like an error")),
+    el("div", { class: "body" }, text.trim() ? codeBlock(text) : el("span", { class: "muted" }, "(empty output)")));
+}
+function renderStep(s) {
+  const box = $("step");
+  box.replaceChildren(
+    el("div", { class: "stephead" },
+      el("h3", {}, `Step ${s.n} of ${steps.length}`), el("span", { class: `kind k-${s.kind}`, title: KIND_HELP[s.kind] }, KIND_LABEL[s.kind]),
+      s.gate && el("span", { class: "badge ok" }, s.kind === "exit" ? "★ gate (synthetic submit)" : "★ final submit · review gate"),
+      s.failed && el("span", { class: "badge bad" }, "! output looks like an error"),
+      el("div", { class: "nav" },
+        el("button", { disabled: cur === 0, onclick: () => select(cur - 1) }, "← Prev"),
+        el("button", { disabled: cur === steps.length - 1, onclick: () => select(cur + 1) }, "Next →"))),
+    el("div", { class: "card" }, el("div", { class: "title" }, "Agent says"),
+      el("div", { class: "body" }, s.text.trim() ? el("pre", { class: "prose" }, s.text)
+        : el("span", { class: "muted" }, s.kind === "exit" ? "(none: the harness ended the run)" : "(no narration on this step)"))));
+  for (const c of s.calls) {
+    box.append(callCard(c, s));
+    if (c.out != null) box.append(outputCard(c.out, c.failed));
+    else if (!s.loose.length) box.append(el("div", { class: "card" }, el("div", { class: "body muted" },
+      c.gate || (c.kind === "submit" && !run.gate) || c.kind === "exit" ? "No output recorded: the run ends here."
+        : "No output recorded for this call.")));
+  }
+  s.loose.forEach((o, i) => box.append(outputCard(o, s.failed && s.calls.length === 1, s.calls.length ? "Output" : "Reply to the agent")));
+  if (!s.calls.length && !s.loose.length && s.kind !== "exit")
+    box.append(el("div", { class: "card" }, el("div", { class: "body muted" }, "No tool call on this step.")));
+}
+
+// ---------- keyboard + deep links ----------
+document.addEventListener("keydown", (e) => {
+  if (e.altKey || e.ctrlKey || e.metaKey || !steps.length) return;
+  const t = e.target;
+  if (t instanceof HTMLInputElement || t instanceof HTMLSelectElement || t instanceof HTMLTextAreaElement) return;
+  const to = { ArrowLeft: cur - 1, ArrowRight: cur + 1, Home: 0, End: steps.length - 1 }[e.key];
+  if (to == null) return;
+  e.preventDefault();
+  select(to);
+});
+function fromHash() {
+  const m = /^#([^/]+)(?:\/(\d+))?$/.exec(location.hash);
+  if (!m) return false;
+  let id; try { id = decodeURIComponent(m[1]); } catch { return false; }
+  const stepNo = Number(m[2] || 1);
+  if (run && run.traj_id === id) { if (stepNo - 1 !== cur) select(stepNo - 1); }
+  else openRun(id, stepNo);
+  return true;
+}
+window.addEventListener("hashchange", fromHash);
+fromHash();
+loadList();
+</script>
+</body>
+</html>

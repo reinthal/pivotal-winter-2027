@@ -38,6 +38,8 @@ from huggingface_hub import snapshot_download
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "replays"
 DIFF_RE = re.compile(r"<diff>\n(.*?)\n?</diff>", re.S)
+# Share of a patch's added lines that must appear in the trajectory.
+PATCH_MATCH_MIN = 0.9
 PR_RE = re.compile(r"<pr_description>\n?(.*?)\n?</pr_description>", re.S)
 
 
@@ -56,29 +58,58 @@ def clean_observation(text: str) -> str:
     return text.removeprefix("OBSERVATION:\n")
 
 
-def pick_diff(row, turns, results, submit_ids, notes) -> tuple[str, str]:
-    """The dataset's `patch` column cannot be trusted: in ~98% of rows it
-    touches files the trajectory never mentions (an apispec run carries a
-    flashtext patch), i.e. it belongs to a different row. So the code change
-    is taken from the trajectory itself, in order of preference:
+def patch_match(patch: str, messages: list[dict]) -> dict:
+    """Does the dataset's `patch` belong to this trajectory?
 
-    1. the diff the submit tool printed for the agent's own review,
-    2. the dataset patch, only if every file in it appears in the trajectory,
+    The `patch` column is misaligned in most rows: it touches files the run
+    never mentions (an apispec run carries a flashtext patch). Two checks:
+
+    files_mentioned  every file in the patch appears somewhere in the run
+    added_found      share of the patch's added lines that appear in the run's
+                     tool-call arguments or tool output (the agent has to have
+                     written them, or seen them in the submit review diff)
+    """
+    patch = (patch or "").replace("\r\n", "\n")
+    if not patch.strip():
+        return {"empty": True, "files_mentioned": False, "added_found": 0.0, "ok": False}
+    parts = []
+    for m in messages:
+        parts.append(text_of(m.get("content")))
+        for tc in m.get("tool_calls") or []:
+            try:
+                args = json.loads(tc["function"]["arguments"] or "{}")
+            except json.JSONDecodeError:
+                args = {"_raw": tc["function"]["arguments"]}
+            parts.extend(str(v) for v in args.values()) if isinstance(args, dict) else parts.append(str(args))
+    corpus = "\n".join(parts).replace("\r\n", "\n")
+    files = re.findall(r"^diff --git a/(\S+)", patch, re.M)
+    added = [l[1:].strip() for l in patch.split("\n") if l.startswith("+") and not l.startswith("+++")]
+    added = [l for l in added if len(l) > 3]
+    found = sum(l in corpus for l in added) / len(added) if added else 0.0
+    mentioned = bool(files) and all(f in corpus for f in files)
+    return {"empty": False, "files_mentioned": mentioned, "added_found": round(found, 3),
+            "ok": mentioned and found >= PATCH_MATCH_MIN}
+
+
+def pick_diff(row, turns, results, submit_ids, notes) -> tuple[str, str]:
+    """Choose the code change to show, in order of preference:
+
+    1. the dataset patch, if patch_match() verifies it against the trajectory
+       (it is the final, post-cleanup patch),
+    2. the diff the submit tool printed for the agent's own review,
     3. the agent's edit calls, rendered as a pseudo-diff.
     """
+    if patch_match(row["patch"], json.loads(row["messages"]))["ok"]:
+        return row["patch"].replace("\r\n", "\n"), "dataset patch (verified against trajectory)"
+
     for sid in reversed(submit_ids):
         found = DIFF_RE.search(results.get(sid, ""))
         if found and found.group(1).strip():
-            notes.append("diff is the pre-cleanup review diff; may include the agent's scratch scripts")
+            notes.append("dataset patch is not this run's; diff is the pre-cleanup review diff, may include scratch scripts")
             # Edits to existing files first, files the agent created last.
             parts = re.split(r"(?m)^(?=diff --git )", found.group(1))
             parts.sort(key=lambda part: "\nnew file mode" in part)
             return "".join(p if p.endswith("\n") else p + "\n" for p in parts if p), "submit review output"
-
-    patch = (row["patch"] or "").replace("\r\n", "\n")
-    files = re.findall(r"^diff --git a/(\S+)", patch, re.M)
-    if files and all(f in row["messages"] for f in files):
-        return patch, "dataset patch (files match trajectory)"
 
     chunks = []
     for turn in turns:

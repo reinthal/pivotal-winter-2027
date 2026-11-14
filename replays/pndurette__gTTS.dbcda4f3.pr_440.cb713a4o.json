@@ -1,0 +1,272 @@
+{
+ "traj_id": "pndurette__gTTS.dbcda4f3.pr_440.cb713a4o",
+ "instance_id": "pndurette__gTTS.dbcda4f3.pr_440",
+ "model": "claude-3-7-sonnet-20250219",
+ "repo": "swesmith/pndurette__gTTS.dbcda4f3",
+ "resolved": false,
+ "task": "Missing __version__ in __all__ and timeout parameter removed\n\nWhen trying to import __version__ from gtts, it fails:\n\n```python\nfrom gtts import __version__\n```\n\nThis results in:\n```\nImportError: cannot import name '__version__' from 'gtts'\n```\n\nThe issue is that __version__ was removed from __all__ in the gtts module.\n\nAdditionally, the timeout parameter is missing from the gTTS class. When trying to set a timeout:\n\n```python\nfrom gtts import gTTS\ntts = gTTS(text='hello', timeout=5)\n```\n\nI get:\n```\nTypeError: gTTS.__init__() got an unexpected keyword argument 'timeout'\n```\n\nThis breaks backward compatibility for any code that was using the timeout parameter to control request timeouts.",
+ "task_source": "swe-smith",
+ "prompt": "<uploaded_files>\n/testbed\n</uploaded_files>\nI've uploaded a python code repository in the directory /testbed. Consider the following PR description:\n\n<pr_description>\nMissing __version__ in __all__ and timeout parameter removed\n\nWhen trying to import __version__ from gtts, it fails:\n\n```python\nfrom gtts import __version__\n```\n\nThis results in:\n```\nImportError: cannot import name '__version__' from 'gtts'\n```\n\nThe issue is that __version__ was removed from __all__ in the gtts module.\n\nAdditionally, the timeout parameter is missing from the gTTS class. When trying to set a timeout:\n\n```python\nfrom gtts import gTTS\ntts = gTTS(text='hello', timeout=5)\n```\n\nI get:\n```\nTypeError: gTTS.__init__() got an unexpected keyword argument 'timeout'\n```\n\nThis breaks backward compatibility for any code that was using the timeout parameter to control request timeouts.\n</pr_description>\n\nCan you help me implement the necessary changes to the repository so that the requirements specified in the <pr_description> are met?\nI've already taken care of all changes to any of the test files described in the <pr_description>. This means you DON'T have to modify the testing logic or any of the tests in any way!\nYour task is to make the minimal changes to non-tests files in the /testbed directory to ensure the <pr_description> is satisfied.\nFollow these steps to resolve the issue:\n1. As a first step, it might be a good idea to find and read code relevant to the <pr_description>\n2. Create a script to reproduce the error and execute it with `python <filename.py>` using the bash tool, to confirm the error\n3. Edit the source code of the repo to resolve the issue\n4. Rerun your reproduce script and confirm that the error is fixed!\n5. Think about edgecases and make sure your fix handles them as well\nYour thinking should be thorough and so it's fine if it's very long.",
+ "turns": [
+  {
+   "text": "I'll help you implement the necessary changes to meet the requirements in the PR description. Let's start by exploring the repository structure and finding the relevant files.",
+   "tool_calls": [
+    {
+     "id": "toolu_01SXmeeqXzrDs2CFYbtYWm7n",
+     "name": "bash",
+     "arguments": {
+      "command": "find /testbed -type f -name \"*.py\" | grep -v \"__pycache__\" | sort"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Let's first look at the main `__init__.py` file to understand how the version is handled and what's in `__all__`:",
+   "tool_calls": [
+    {
+     "id": "toolu_01QzqmvDZzMCc2ArUHsiYHNW",
+     "name": "str_replace_editor",
+     "arguments": {
+      "command": "view",
+      "path": "/testbed/gtts/__init__.py"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Now let's check the version file:",
+   "tool_calls": [
+    {
+     "id": "toolu_014TRnRcqdoVzXVLsYxBPvZ3",
+     "name": "str_replace_editor",
+     "arguments": {
+      "command": "view",
+      "path": "/testbed/gtts/version.py"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Let's also look at the gTTS class implementation to understand the timeout parameter issue:",
+   "tool_calls": [
+    {
+     "id": "toolu_01QoWCpRS5hQtpz9badhdMRR",
+     "name": "str_replace_editor",
+     "arguments": {
+      "command": "view",
+      "path": "/testbed/gtts/tts.py"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Based on the files I've examined, I can identify the two issues mentioned in the PR description:\n\n1. `__version__` is not included in `__all__` in the `gtts/__init__.py` file\n2. The `timeout` parameter is missing from the `gTTS` class initialization\n\nLet's create a script to reproduce these errors:",
+   "tool_calls": [
+    {
+     "id": "toolu_013bF6Y5VtCbnA48bh7jPP7e",
+     "name": "str_replace_editor",
+     "arguments": {
+      "command": "create",
+      "path": "/testbed/reproduce_errors.py",
+      "file_text": "#!/usr/bin/env python3\n# Script to reproduce the errors mentioned in the PR description\n\nprint(\"Testing __version__ import:\")\ntry:\n    from gtts import __version__\n    print(f\"Success! __version__ = {__version__}\")\nexcept ImportError as e:\n    print(f\"Error: {e}\")\n\nprint(\"\\nTesting timeout parameter:\")\ntry:\n    from gtts import gTTS\n    tts = gTTS(text='hello', timeout=5)\n    print(\"Success! timeout parameter works\")\nexcept TypeError as e:\n    print(f\"Error: {e}\")"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Let's run the script to confirm the errors:",
+   "tool_calls": [
+    {
+     "id": "toolu_0183cEGbwWyKK9gLZrR4Tw9v",
+     "name": "bash",
+     "arguments": {
+      "command": "cd /testbed && python reproduce_errors.py"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Interesting! It seems the `__version__` import is actually working, but the timeout parameter is indeed missing. Let's check if `__version__` is actually in `__all__` in the `gtts/__init__.py` file:",
+   "tool_calls": [
+    {
+     "id": "toolu_01TKqDefUh1PeC3NQjWfB4tS",
+     "name": "str_replace_editor",
+     "arguments": {
+      "command": "view",
+      "path": "/testbed/gtts/__init__.py"
+     }
+    }
+   ]
+  },
+  {
+   "text": "I see the issue now. The `__version__` is imported but not included in `__all__`. Even though we can import it directly from the module, it's not included in the `__all__` list, which defines what gets imported when using `from gtts import *`.\n\nNow let's implement the fixes:\n\n1. First, let's add `__version__` to `__all__` in `gtts/__init__.py`:",
+   "tool_calls": [
+    {
+     "id": "toolu_01NeHSuGK1apa3pZoV7fm22A",
+     "name": "str_replace_editor",
+     "arguments": {
+      "command": "str_replace",
+      "path": "/testbed/gtts/__init__.py",
+      "old_str": "__all__ = [\"gTTS\", \"gTTSError\"]",
+      "new_str": "__all__ = [\"gTTS\", \"gTTSError\", \"__version__\"]"
+     }
+    }
+   ]
+  },
+  {
+   "text": "2. Now, let's add the `timeout` parameter to the `gTTS` class in `gtts/tts.py`:",
+   "tool_calls": [
+    {
+     "id": "toolu_01CXhh4GUUC8FKKiwqRfFrCH",
+     "name": "str_replace_editor",
+     "arguments": {
+      "command": "str_replace",
+      "path": "/testbed/gtts/tts.py",
+      "old_str": "    def __init__(\n        self,\n        text,\n        tld=\"com\",\n        lang=\"en\",\n        slow=False,\n        lang_check=True,\n        pre_processor_funcs=[\n            pre_processors.tone_marks,\n            pre_processors.end_of_line,\n            pre_processors.abbreviations,\n            pre_processors.word_sub,\n        ],\n        tokenizer_func=Tokenizer(\n            [\n                tokenizer_cases.tone_marks,\n                tokenizer_cases.period_comma,\n                tokenizer_cases.colon,\n                tokenizer_cases.other_punctuation,\n            ]\n        ).run,\n    ):",
+      "new_str": "    def __init__(\n        self,\n        text,\n        tld=\"com\",\n        lang=\"en\",\n        slow=False,\n        lang_check=True,\n        pre_processor_funcs=[\n            pre_processors.tone_marks,\n            pre_processors.end_of_line,\n            pre_processors.abbreviations,\n            pre_processors.word_sub,\n        ],\n        tokenizer_func=Tokenizer(\n            [\n                tokenizer_cases.tone_marks,\n                tokenizer_cases.period_comma,\n                tokenizer_cases.colon,\n                tokenizer_cases.other_punctuation,\n            ]\n        ).run,\n        timeout=None,\n    ):"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Now we need to modify the `stream` method to use the timeout parameter when making requests:",
+   "tool_calls": [
+    {
+     "id": "toolu_01KYUahksrjiSzqJNXvve4hW",
+     "name": "str_replace_editor",
+     "arguments": {
+      "command": "str_replace",
+      "path": "/testbed/gtts/tts.py",
+      "old_str": "        # Pre-processors and tokenizer\n        self.pre_processor_funcs = pre_processor_funcs\n        self.tokenizer_func = tokenizer_func",
+      "new_str": "        # Pre-processors and tokenizer\n        self.pre_processor_funcs = pre_processor_funcs\n        self.tokenizer_func = tokenizer_func\n        \n        # Timeout\n        self.timeout = timeout"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Now let's update the `stream` method to use the timeout parameter:",
+   "tool_calls": [
+    {
+     "id": "toolu_01EN2UDUgZrPnAmY6Qu5apes",
+     "name": "str_replace_editor",
+     "arguments": {
+      "command": "str_replace",
+      "path": "/testbed/gtts/tts.py",
+      "old_str": "                    # Send request\n                    r = s.send(\n                        request=pr, proxies=urllib.request.getproxies(), verify=False\n                    )",
+      "new_str": "                    # Send request\n                    r = s.send(\n                        request=pr, proxies=urllib.request.getproxies(), verify=False,\n                        timeout=self.timeout\n                    )"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Let's also update the docstring to include the timeout parameter:",
+   "tool_calls": [
+    {
+     "id": "toolu_01V4Mi1RuvJ7aPQd8U6pHTSy",
+     "name": "str_replace_editor",
+     "arguments": {
+      "command": "str_replace",
+      "path": "/testbed/gtts/tts.py",
+      "old_str": "    \"\"\"gTTS -- Google Text-to-Speech.\n\n    An interface to Google Translate's Text-to-Speech API.\n\n    Args:\n        text (string): The text to be read.\n        tld (string): Top-level domain for the Google Translate host,\n            i.e `https://translate.google.<tld>`. Different Google domains\n            can produce different localized 'accents' for a given\n            language. This is also useful when ``google.com`` might be blocked\n            within a network but a local or different Google host\n            (e.g. ``google.com.hk``) is not. Default is ``com``.\n        lang (string, optional): The language (IETF language tag) to\n            read the text in. Default is ``en``.\n        slow (bool, optional): Reads text more slowly. Defaults to ``False``.\n        lang_check (bool, optional): Strictly enforce an existing ``lang``,\n            to catch a language error early. If set to ``True``,\n            a ``ValueError`` is raised if ``lang`` doesn't exist.\n            Setting ``lang_check`` to ``False`` skips Web requests\n            (to validate language) and therefore speeds up instanciation.\n            Default is ``True``.\n        pre_processor_funcs (list): A list of zero or more functions that are\n            called to transform (pre-process) text before tokenizing. Those\n            functions must take a string and return a string. Defaults to::\n\n                [\n                    pre_processors.tone_marks,\n                    pre_processors.end_of_line,\n                    pre_processors.abbreviations,\n                    pre_processors.word_sub\n                ]\n\n        tokenizer_func (callable): A function that takes in a string and\n            returns a list of string (tokens). Defaults to::\n\n                Tokenizer([\n                    tokenizer_cases.tone_marks,\n                    tokenizer_cases.period_comma,\n                    tokenizer_cases.colon,\n                    tokenizer_cases.other_punctuation\n                ]).run",
+      "new_str": "    \"\"\"gTTS -- Google Text-to-Speech.\n\n    An interface to Google Translate's Text-to-Speech API.\n\n    Args:\n        text (string): The text to be read.\n        tld (string): Top-level domain for the Google Translate host,\n            i.e `https://translate.google.<tld>`. Different Google domains\n            can produce different localized 'accents' for a given\n            language. This is also useful when ``google.com`` might be blocked\n            within a network but a local or different Google host\n            (e.g. ``google.com.hk``) is not. Default is ``com``.\n        lang (string, optional): The language (IETF language tag) to\n            read the text in. Default is ``en``.\n        slow (bool, optional): Reads text more slowly. Defaults to ``False``.\n        lang_check (bool, optional): Strictly enforce an existing ``lang``,\n            to catch a language error early. If set to ``True``,\n            a ``ValueError`` is raised if ``lang`` doesn't exist.\n            Setting ``lang_check`` to ``False`` skips Web requests\n            (to validate language) and therefore speeds up instanciation.\n            Default is ``True``.\n        pre_processor_funcs (list): A list of zero or more functions that are\n            called to transform (pre-process) text before tokenizing. Those\n            functions must take a string and return a string. Defaults to::\n\n                [\n                    pre_processors.tone_marks,\n                    pre_processors.end_of_line,\n                    pre_processors.abbreviations,\n                    pre_processors.word_sub\n                ]\n\n        tokenizer_func (callable): A function that takes in a string and\n            returns a list of string (tokens). Defaults to::\n\n                Tokenizer([\n                    tokenizer_cases.tone_marks,\n                    tokenizer_cases.period_comma,\n                    tokenizer_cases.colon,\n                    tokenizer_cases.other_punctuation\n                ]).run\n        \n        timeout (float, optional): Timeout in seconds for the requests. Default is\n            None, which means the requests library's default timeout will be used."
+     }
+    }
+   ]
+  },
+  {
+   "text": "Now let's run our script again to verify that the issues have been fixed:",
+   "tool_calls": [
+    {
+     "id": "toolu_019Cqfnu7r464uvkDoUwq6LG",
+     "name": "bash",
+     "arguments": {
+      "command": "cd /testbed && python reproduce_errors.py"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Great! Both issues have been fixed. Let's create a more comprehensive test script to verify edge cases:",
+   "tool_calls": [
+    {
+     "id": "toolu_01FV3vGdvp4jwPABpx1qT8hF",
+     "name": "str_replace_editor",
+     "arguments": {
+      "command": "create",
+      "path": "/testbed/comprehensive_test.py",
+      "file_text": "#!/usr/bin/env python3\n# Comprehensive test script to verify the fixes\n\nimport sys\nfrom unittest.mock import patch, MagicMock\nfrom gtts import gTTS, __version__\n\nprint(f\"Testing with gtts version: {__version__}\")\n\n# Test 1: Import __version__ using star import\nprint(\"\\nTest 1: Import __version__ using star import\")\ntry:\n    from gtts import *\n    print(f\"Success! __version__ = {__version__}\")\nexcept ImportError as e:\n    print(f\"Error: {e}\")\n    sys.exit(1)\n\n# Test 2: Basic timeout parameter\nprint(\"\\nTest 2: Basic timeout parameter\")\ntry:\n    tts = gTTS(text='hello', timeout=5)\n    print(f\"Success! timeout parameter set to: {tts.timeout}\")\nexcept TypeError as e:\n    print(f\"Error: {e}\")\n    sys.exit(1)\n\n# Test 3: Default timeout parameter (None)\nprint(\"\\nTest 3: Default timeout parameter\")\ntry:\n    tts = gTTS(text='hello')\n    print(f\"Success! Default timeout parameter is: {tts.timeout}\")\nexcept Exception as e:\n    print(f\"Error: {e}\")\n    sys.exit(1)\n\n# Test 4: Mock the requests.Session.send method to verify timeout is passed\nprint(\"\\nTest 4: Verify timeout is passed to requests\")\nwith patch('requests.Session.send') as mock_send:\n    mock_response = MagicMock()\n    mock_response.status_code = 200\n    mock_response.iter_lines.return_value = [b'jQ1olc\",\"[\\\\\"AQVN2XdvFIJ5AW7LyVh9\\\\\"]']\n    mock_send.return_value = mock_response\n    \n    # Test with timeout\n    tts = gTTS(text='hello', timeout=10)\n    try:\n        for _ in tts.stream():\n            pass\n        \n        # Check if timeout was passed to send\n        args, kwargs = mock_send.call_args\n        print(f\"Success! Timeout parameter was passed: {kwargs.get('timeout')}\")\n        if kwargs.get('timeout') != 10:\n            print(f\"Error: Expected timeout=10, got {kwargs.get('timeout')}\")\n            sys.exit(1)\n    except Exception as e:\n        print(f\"Error during stream with timeout: {e}\")\n        sys.exit(1)\n\nprint(\"\\nAll tests passed successfully!\")"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Let's run the comprehensive test script:",
+   "tool_calls": [
+    {
+     "id": "toolu_01NkQwFrY6ukANR8ALCGjdZL",
+     "name": "bash",
+     "arguments": {
+      "command": "cd /testbed && python comprehensive_test.py"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Excellent! All our tests have passed. Let's summarize the changes we made:\n\n1. Added `__version__` to `__all__` in `gtts/__init__.py` to make it accessible when using `from gtts import *`.\n\n2. Added the `timeout` parameter to the `gTTS` class in `gtts/tts.py`:\n   - Added the parameter to the `__init__` method with a default value of `None`\n   - Added a property to store the timeout value\n   - Updated the docstring to document the new parameter\n   - Modified the `stream` method to use the timeout parameter when making requests\n\nThese changes maintain backward compatibility while addressing the issues mentioned in the PR description.\n\nLet's submit our solution:",
+   "tool_calls": [
+    {
+     "id": "toolu_019kJiiJGQU6Y1uQ1TRMxUzW",
+     "name": "submit",
+     "arguments": {}
+    }
+   ]
+  },
+  {
+   "text": "Let me clean up the test files I created:",
+   "tool_calls": [
+    {
+     "id": "toolu_01NzUnL4qmx5jhB1sedDGbSf",
+     "name": "bash",
+     "arguments": {
+      "command": "rm /testbed/reproduce_errors.py /testbed/comprehensive_test.py"
+     }
+    }
+   ]
+  },
+  {
+   "text": "Now let's submit our solution again:",
+   "tool_calls": [
+    {
+     "id": "toolu_01V5zVnNUwUqUfE2EnihFdbx",
+     "name": "submit",
+     "arguments": {}
+    }
+   ]
+  }
+ ],
+ "results": {
+  "toolu_01SXmeeqXzrDs2CFYbtYWm7n": "/testbed/docs/conf.py\n/testbed/gtts/__init__.py\n/testbed/gtts/accents.py\n/testbed/gtts/cli.py\n/testbed/gtts/lang.py\n/testbed/gtts/langs.py\n/testbed/gtts/tests/__init__.py\n/testbed/gtts/tests/test_cli.py\n/testbed/gtts/tests/test_lang.py\n/testbed/gtts/tests/test_tts.py\n/testbed/gtts/tests/test_utils.py\n/testbed/gtts/tokenizer/__init__.py\n/testbed/gtts/tokenizer/core.py\n/testbed/gtts/tokenizer/pre_processors.py\n/testbed/gtts/tokenizer/symbols.py\n/testbed/gtts/tokenizer/tests/test_core.py\n/testbed/gtts/tokenizer/tests/test_pre_processors.py\n/testbed/gtts/tokenizer/tests/test_tokenizer_cases.py\n/testbed/gtts/tokenizer/tokenizer_cases.py\n/testbed/gtts/tts.py\n/testbed/gtts/utils.py\n/testbed/gtts/version.py\n/testbed/scripts/check_langs.py\n/testbed/scripts/gen_langs.py\n/testbed/scripts/utils.py",
+  "toolu_01QzqmvDZzMCc2ArUHsiYHNW": "Here's the result of running `cat -n` on /testbed/gtts/__init__.py:\n     1\t# -*- coding: utf-8 -*-\n     2\tfrom .version import __version__  # noqa: F401\n     3\tfrom .tts import gTTS, gTTSError\n     4\t\n     5\t__all__ = [\"gTTS\", \"gTTSError\"]\n     6",
+  "toolu_014TRnRcqdoVzXVLsYxBPvZ3": "Here's the result of running `cat -n` on /testbed/gtts/version.py:\n     1\t__version__ = \"2.5.4\"\n     2",
+  "toolu_01QoWCpRS5hQtpz9badhdMRR": "Here's the result of running `cat -n` on /testbed/gtts/tts.py:\n     1\t# -*- coding: utf-8 -*-\n     2\timport base64\n     3\timport json\n     4\timport logging\n     5\timport re\n     6\timport urllib\n     7\t\n     8\timport requests\n     9\t\n    10\tfrom gtts.lang import _fallback_deprecated_lang, tts_langs\n    11\tfrom gtts.tokenizer import Tokenizer, pre_processors, tokenizer_cases\n    12\tfrom gtts.utils import _clean_tokens, _len, _minimize, _translate_url\n    13\t\n    14\t__all__ = [\"gTTS\", \"gTTSError\"]\n    15\t\n    16\t# Logger\n    17\tlog = logging.getLogger(__name__)\n    18\tlog.addHandler(logging.NullHandler())\n    19\t\n    20\t\n    21\tclass Speed:\n    22\t    \"\"\"Read Speed\n    23\t\n    24\t    The Google TTS Translate API supports two speeds:\n    25\t        Slow: True\n    26\t        Normal: None\n    27\t    \"\"\"\n    28\t\n    29\t    SLOW = True\n    30\t    NORMAL = None\n    31\t\n    32\t\n    33\tclass gTTS:\n    34\t    \"\"\"gTTS -- Google Text-to-Speech.\n    35\t\n    36\t    An interface to Google Translate's Text-to-Speech API.\n    37\t\n    38\t    Args:\n    39\t        text (string): The text to be read.\n    40\t        tld (string): Top-level domain for the Google Translate host,\n    41\t            i.e `https://translate.google.<tld>`. Different Google domains\n    42\t            can produce different localized 'accents' for a given\n    43\t            language. This is also useful when ``google.com`` might be blocked\n    44\t            within a network but a local or different Google host\n    45\t            (e.g. ``google.com.hk``) is not. Default is ``com``.\n    46\t        lang (string, optional): The language (IETF language tag) to\n    47\t            read the text in. Default is ``en``.\n    48\t        slow (bool, optional): Reads text more slowly. Defaults to ``False``.\n    49\t        lang_check (bool, optional): Strictly enforce an existing ``lang``,\n    50\t            to catch a language error early. If set to ``True``,\n    51\t            a ``ValueError`` is raised if ``lang`` doesn't exist.\n    52\t            Setting ``lang_check`` to ``False`` skips Web requests\n    53\t            (to validate language) and therefore speeds up instanciation.\n    54\t            Default is ``True``.\n    55\t        pre_processor_funcs (list): A list of zero or more functions that are\n    56\t            called to transform (pre-process) text before tokenizing. Those\n    57\t            functions must take a string and return a string. Defaults to::\n    58\t\n    59\t                [\n    60\t                    pre_processors.tone_marks,\n    61\t                    pre_processors.end_of_line,\n    62\t                    pre_processors.abbreviations,\n    63\t                    pre_processors.word_sub\n    64\t                ]\n    65\t\n    66\t        tokenizer_func (callable): A function that takes in a string and\n    67\t            returns a list of string (tokens). Defaults to::\n    68\t\n    69\t                Tokenizer([\n    70\t                    tokenizer_cases.tone_marks,\n    71\t                    tokenizer_cases.period_comma,\n    72\t                    tokenizer_cases.colon,\n    73\t                    tokenizer_cases.other_punctuation\n    74\t                ]).run\n    75\t\n    76\t    See Also:\n    77\t        :doc:`Pre-processing and tokenizing <tokenizer>`\n    78\t\n    79\t    Raises:\n    80\t        AssertionError: When ``text`` is ``None`` or empty; when there's nothing\n    81\t            left to speak after pre-processing, tokenizing and cleaning.\n    82\t        ValueError: When ``lang_check`` is ``True`` and ``lang`` is not supported.\n    83\t        RuntimeError: When ``lang_check`` is ``True`` but there's an error loading\n    84\t            the languages dictionary.\n    85\t\n    86\t    \"\"\"\n    87\t\n    88\t    GOOGLE_TTS_MAX_CHARS = 100  # Max characters the Google TTS API takes at a time\n    89\t    GOOGLE_TTS_HEADERS = {\n    90\t        \"Referer\": \"http://translate.google.com/\",\n    91\t        \"User-Agent\": \"Mozilla/5.0 (Windows NT 10.0; WOW64) \"\n    92\t        \"AppleWebKit/537.36 (KHTML, like Gecko) \"\n    93\t        \"Chrome/47.0.2526.106 Safari/537.36\",\n    94\t        \"Content-Type\": \"application/x-www-form-urlencoded;charset=utf-8\",\n    95\t    }\n    96\t    GOOGLE_TTS_RPC = \"jQ1olc\"\n    97\t\n    98\t    def __init__(\n    99\t        self,\n   100\t        text,\n   101\t        tld=\"com\",\n   102\t        lang=\"en\",\n   103\t        slow=False,\n   104\t        lang_check=True,\n   105\t        pre_processor_funcs=[\n   106\t            pre_processors.tone_marks,\n   107\t            pre_processors.end_of_line,\n   108\t            pre_processors.abbreviations,\n   109\t            pre_processors.word_sub,\n   110\t        ],\n   111\t        tokenizer_func=Tokenizer(\n   112\t            [\n   113\t                tokenizer_cases.tone_marks,\n   114\t                tokenizer_cases.period_comma,\n   115\t                tokenizer_cases.colon,\n   116\t                tokenizer_cases.other_punctuation,\n   117\t            ]\n   118\t        ).run,\n   119\t    ):\n   120\t\n   121\t        # Debug\n   122\t        for k, v in dict(locals()).items():\n   123\t            if k == \"self\":\n   124\t                continue\n   125\t            log.debug(\"%s: %s\", k, v)\n   126\t\n   127\t        # Text\n   128\t        assert text, \"No text to speak\"\n   129\t        self.text = text\n   130\t\n   131\t        # Translate URL top-level domain\n   132\t        self.tld = tld\n   133\t\n   134\t        # Language\n   135\t        self.lang_check = lang_check\n   136\t        self.lang = lang\n   137\t\n   138\t        if self.lang_check:\n   139\t            # Fallback lang in case it is deprecated\n   140\t            self.lang = _fallback_deprecated_lang(lang)\n   141\t\n   142\t            try:\n   143\t                langs = tts_langs()\n   144\t                if self.lang not in langs:\n   145\t                    raise ValueError(\"Language not supported: %s\" % lang)\n   146\t            except RuntimeError as e:\n   147\t                log.debug(str(e), exc_info=True)\n   148\t                log.warning(str(e))\n   149\t\n   150\t        # Read speed\n   151\t        if slow:\n   152\t            self.speed = Speed.SLOW\n   153\t        else:\n   154\t            self.speed = Speed.NORMAL\n   155\t\n   156\t        # Pre-processors and tokenizer\n   157\t        self.pre_processor_funcs = pre_processor_funcs\n   158\t        self.tokenizer_func = tokenizer_func\n   159\t\n   160\t    def _tokenize(self, text):\n   161\t        # Pre-clean\n   162\t        text = text.strip()\n   163\t\n   164\t        # Apply pre-processors\n   165\t        for pp in self.pre_processor_funcs:\n   166\t            log.debug(\"pre-processing: %s\", pp)\n   167\t            text = pp(text)\n   168\t\n   169\t        if _len(text) <= self.GOOGLE_TTS_MAX_CHARS:\n   170\t            return _clean_tokens([text])\n   171\t\n   172\t        # Tokenize\n   173\t        log.debug(\"tokenizing: %s\", self.tokenizer_func)\n   174\t        tokens = self.tokenizer_func(text)\n   175\t\n   176\t        # Clean\n   177\t        tokens = _clean_tokens(tokens)\n   178\t\n   179\t        # Minimize\n   180\t        min_tokens = []\n   181\t        for t in tokens:\n   182\t            min_tokens += _minimize(t, \" \", self.GOOGLE_TTS_MAX_CHARS)\n   183\t\n   184\t        # Filter empty tokens, post-minimize\n   185\t        tokens = [t for t in min_tokens if t]\n   186\t\n   187\t        return min_tokens\n   188\t\n   189\t    def _prepare_requests(self):\n   190\t        \"\"\"Created the TTS API the request(s) without sending them.\n   191\t\n   192\t        Returns:\n   193\t            list: ``requests.PreparedRequests_``. <https://2.python-requests.org/en/master/api/#requests.PreparedRequest>`_``.\n   194\t        \"\"\"\n   195\t        # TTS API URL\n   196\t        translate_url = _translate_url(\n   197\t            tld=self.tld, path=\"_/TranslateWebserverUi/data/batchexecute\"\n   198\t        )\n   199\t\n   200\t        text_parts = self._tokenize(self.text)\n   201\t        log.debug(\"text_parts: %s\", str(text_parts))\n   202\t        log.debug(\"text_parts: %i\", len(text_parts))\n   203\t        assert text_parts, \"No text to send to TTS API\"\n   204\t\n   205\t        prepared_requests = []\n   206\t        for idx, part in enumerate(text_parts):\n   207\t            data = self._package_rpc(part)\n   208\t\n   209\t            log.debug(\"data-%i: %s\", idx, data)\n   210\t\n   211\t            # Request\n   212\t            r = requests.Request(\n   213\t                method=\"POST\",\n   214\t                url=translate_url,\n   215\t                data=data,\n   216\t                headers=self.GOOGLE_TTS_HEADERS,\n   217\t            )\n   218\t\n   219\t            # Prepare request\n   220\t            prepared_requests.append(r.prepare())\n   221\t\n   222\t        return prepared_requests\n   223\t\n   224\t    def _package_rpc(self, text):\n   225\t        parameter = [text, self.lang, self.speed, \"null\"]\n   226\t        escaped_parameter = json.dumps(parameter, separators=(\",\", \":\"))\n   227\t\n   228\t        rpc = [[[self.GOOGLE_TTS_RPC, escaped_parameter, None, \"generic\"]]]\n   229\t        espaced_rpc = json.dumps(rpc, separators=(\",\", \":\"))\n   230\t        return \"f.req={}&\".format(urllib.parse.quote(espaced_rpc))\n   231\t\n   232\t    def get_bodies(self):\n   233\t        \"\"\"Get TTS API request bodies(s) that would be sent to the TTS API.\n   234\t\n   235\t        Returns:\n   236\t            list: A list of TTS API request bodiess to make.\n   237\t        \"\"\"\n   238\t        return [pr.body for pr in self._prepare_requests()]\n   239\t\n   240\t    def stream(self):\n   241\t        \"\"\"Do the TTS API request(s) and stream bytes\n   242\t\n   243\t        Raises:\n   244\t            :class:`gTTSError`: When there's an error with the API request.\n   245\t\n   246\t        \"\"\"\n   247\t        # When disabling ssl verify in requests (for proxies and firewalls),\n   248\t        # urllib3 prints an insecure warning on stdout. We disable that.\n   249\t        try:\n   250\t            requests.packages.urllib3.disable_warnings(\n   251\t                requests.packages.urllib3.exceptions.InsecureRequestWarning\n   252\t            )\n   253\t        except:\n   254\t            pass\n   255\t\n   256\t        prepared_requests = self._prepare_requests()\n   257\t        for idx, pr in enumerate(prepared_requests):\n   258\t            try:\n   259\t                with requests.Session() as s:\n   260\t                    # Send request\n   261\t                    r = s.send(\n   262\t                        request=pr, proxies=urllib.request.getproxies(), verify=False\n   263\t                    )\n   264\t\n   265\t                log.debug(\"headers-%i: %s\", idx, r.request.headers)\n   266\t                log.debug(\"url-%i: %s\", idx, r.request.url)\n   267\t                log.debug(\"status-%i: %s\", idx, r.status_code)\n   268\t\n   269\t                r.raise_for_status()\n   270\t            except requests.exceptions.HTTPError as e:  # pragma: no cover\n   271\t                # Request successful, bad response\n   272\t                log.debug(str(e))\n   273\t                raise gTTSError(tts=self, response=r)\n   274\t            except requests.exceptions.RequestException as e:  # pragma: no cover\n   275\t                # Request failed\n   276\t                log.debug(str(e))\n   277\t                raise gTTSError(tts=self)\n   278\t\n   279\t            # Write\n   280\t            for line in r.iter_lines(chunk_size=1024):\n   281\t                decoded_line = line.decode(\"utf-8\")\n   282\t                if \"jQ1olc\" in decoded_line:\n   283\t                    audio_search = re.search(r'jQ1olc\",\"\\[\\\\\"(.*)\\\\\"]', decoded_line)\n   284\t                    if audio_search:\n   285\t                        as_bytes = audio_search.group(1).encode(\"ascii\")\n   286\t                        yield base64.b64decode(as_bytes)\n   287\t                    else:\n   288\t                        # Request successful, good response,\n   289\t                        # no audio stream in response\n   290\t                        raise gTTSError(tts=self, response=r)\n   291\t            log.debug(\"part-%i created\", idx)\n   292\t\n   293\t    def write_to_fp(self, fp):\n   294\t        \"\"\"Do the TTS API request(s) and write bytes to a file-like object.\n   295\t\n   296\t        Args:\n   297\t            fp (file object): Any file-like object to write the ``mp3`` to.\n   298\t\n   299\t        Raises:\n   300\t            :class:`gTTSError`: When there's an error with the API request.\n   301\t            TypeError: When ``fp`` is not a file-like object that takes bytes.\n   302\t\n   303\t        \"\"\"\n   304\t\n   305\t        try:\n   306\t            for idx, decoded in enumerate(self.stream()):\n   307\t                fp.write(decoded)\n   308\t                log.debug(\"part-%i written to %s\", idx, fp)\n   309\t        except (AttributeError, TypeError) as e:\n   310\t            raise TypeError(\n   311\t                \"'fp' is not a file-like object or it does not take bytes: %s\" % str(e)\n   312\t            )\n   313\t\n   314\t    def save(self, savefile):\n   315\t        \"\"\"Do the TTS API request and write result to file.\n   316\t\n   317\t        Args:\n   318\t            savefile (string): The path and file name to save the ``mp3`` to.\n   319\t\n   320\t        Raises:\n   321\t            :class:`gTTSError`: When there's an error with the API request.\n   322\t\n   323\t        \"\"\"\n   324\t        with open(str(savefile), \"wb\") as f:\n   325\t            self.write_to_fp(f)\n   326\t            f.flush()\n   327\t            log.debug(\"Saved to %s\", savefile)\n   328\t\n   329\t\n   330\tclass gTTSError(Exception):\n   331\t    \"\"\"Exception that uses context to present a meaningful error message\"\"\"\n   332\t\n   333\t    def __init__(self, msg=None, **kwargs):\n   334\t        self.tts = kwargs.pop(\"tts\", None)\n   335\t        self.rsp = kwargs.pop(\"response\", None)\n   336\t        if msg:\n   337\t            self.msg = msg\n   338\t        elif self.tts is not None:\n   339\t            self.msg = self.infer_msg(self.tts, self.rsp)\n   340\t        else:\n   341\t            self.msg = None\n   342\t        super(gTTSError, self).__init__(self.msg)\n   343\t\n   344\t    def infer_msg(self, tts, rsp=None):\n   345\t        \"\"\"Attempt to guess what went wrong by using known\n   346\t        information (e.g. http response) and observed behaviour\n   347\t\n   348\t        \"\"\"\n   349\t        cause = \"Unknown\"\n   350\t\n   351\t        if rsp is None:\n   352\t            premise = \"Failed to connect\"\n   353\t\n   354\t            if tts.tld != \"com\":\n   355\t                host = _translate_url(tld=tts.tld)\n   356\t                cause = \"Host '{}' is not reachable\".format(host)\n   357\t\n   358\t        else:\n   359\t            # rsp should be <requests.Response>\n   360\t            # http://docs.python-requests.org/en/master/api/\n   361\t            status = rsp.status_code\n   362\t            reason = rsp.reason\n   363\t\n   364\t            premise = \"{:d} ({}) from TTS API\".format(status, reason)\n   365\t\n   366\t            if status == 403:\n   367\t                cause = \"Bad token or upstream API changes\"\n   368\t            elif status == 404 and tts.tld != \"com\":\n   369\t                cause = \"Unsupported tld '{}'\".format(tts.tld)\n   370\t            elif status == 200 and not tts.lang_check:\n   371\t                cause = (\n   372\t                    \"No audio stream in response. Unsupported language '%s'\"\n   373\t                    % self.tts.lang\n   374\t                )\n   375\t            elif status >= 500:\n   376\t                cause = \"Uptream API error. Try again later.\"\n   377\t\n   378\t        return \"{}. Probable cause: {}\".format(premise, cause)\n   379",
+  "toolu_013bF6Y5VtCbnA48bh7jPP7e": "File created successfully at: /testbed/reproduce_errors.py",
+  "toolu_0183cEGbwWyKK9gLZrR4Tw9v": "Testing __version__ import:\nSuccess! __version__ = 2.5.4\n\nTesting timeout parameter:\nError: gTTS.__init__() got an unexpected keyword argument 'timeout'",
+  "toolu_01TKqDefUh1PeC3NQjWfB4tS": "Here's the result of running `cat -n` on /testbed/gtts/__init__.py:\n     1\t# -*- coding: utf-8 -*-\n     2\tfrom .version import __version__  # noqa: F401\n     3\tfrom .tts import gTTS, gTTSError\n     4\t\n     5\t__all__ = [\"gTTS\", \"gTTSError\"]\n     6",
+  "toolu_01NeHSuGK1apa3pZoV7fm22A": "The file /testbed/gtts/__init__.py has been edited. Here's the result of running `cat -n` on a snippet of /testbed/gtts/__init__.py:\n     1\t# -*- coding: utf-8 -*-\n     2\tfrom .version import __version__  # noqa: F401\n     3\tfrom .tts import gTTS, gTTSError\n     4\t\n     5\t__all__ = [\"gTTS\", \"gTTSError\", \"__version__\"]\nReview the changes and make sure they are as expected. Edit the file again if necessary.",
+  "toolu_01CXhh4GUUC8FKKiwqRfFrCH": "The file /testbed/gtts/tts.py has been edited. Here's the result of running `cat -n` on a snippet of /testbed/gtts/tts.py:\n    93\t        \"Chrome/47.0.2526.106 Safari/537.36\",\n    94\t        \"Content-Type\": \"application/x-www-form-urlencoded;charset=utf-8\",\n    95\t    }\n    96\t    GOOGLE_TTS_RPC = \"jQ1olc\"\n    97\t\n    98\t    def __init__(\n    99\t        self,\n   100\t        text,\n   101\t        tld=\"com\",\n   102\t        lang=\"en\",\n   103\t        slow=False,\n   104\t        lang_check=True,\n   105\t        pre_processor_funcs=[\n   106\t            pre_processors.tone_marks,\n   107\t            pre_processors.end_of_line,\n   108\t            pre_processors.abbreviations,\n   109\t            pre_processors.word_sub,\n   110\t        ],\n   111\t        tokenizer_func=Tokenizer(\n   112\t            [\n   113\t                tokenizer_cases.tone_marks,\n   114\t                tokenizer_cases.period_comma,\n   115\t                tokenizer_cases.colon,\n   116\t                tokenizer_cases.other_punctuation,\n   117\t            ]\n   118\t        ).run,\n   119\t        timeout=None,\n   120\t    ):\n   121\t\n   122\t        # Debug\n   123\t        for k, v in dict(locals()).items():\nReview the changes and make sure they are as expected. Edit the file again if necessary.",
+  "toolu_01KYUahksrjiSzqJNXvve4hW": "The file /testbed/gtts/tts.py has been edited. Here's the result of running `cat -n` on a snippet of /testbed/gtts/tts.py:\n   152\t        if slow:\n   153\t            self.speed = Speed.SLOW\n   154\t        else:\n   155\t            self.speed = Speed.NORMAL\n   156\t\n   157\t        # Pre-processors and tokenizer\n   158\t        self.pre_processor_funcs = pre_processor_funcs\n   159\t        self.tokenizer_func = tokenizer_func\n   160\t        \n   161\t        # Timeout\n   162\t        self.timeout = timeout\n   163\t\n   164\t    def _tokenize(self, text):\n   165\t        # Pre-clean\nReview the changes and make sure they are as expected. Edit the file again if necessary.",
+  "toolu_01EN2UDUgZrPnAmY6Qu5apes": "The file /testbed/gtts/tts.py has been edited. Here's the result of running `cat -n` on a snippet of /testbed/gtts/tts.py:\n   259\t\n   260\t        prepared_requests = self._prepare_requests()\n   261\t        for idx, pr in enumerate(prepared_requests):\n   262\t            try:\n   263\t                with requests.Session() as s:\n   264\t                    # Send request\n   265\t                    r = s.send(\n   266\t                        request=pr, proxies=urllib.request.getproxies(), verify=False,\n   267\t                        timeout=self.timeout\n   268\t                    )\n   269\t\n   270\t                log.debug(\"headers-%i: %s\", idx, r.request.headers)\n   271\t                log.debug(\"url-%i: %s\", idx, r.request.url)\nReview the changes and make sure they are as expected. Edit the file again if necessary.",
+  "toolu_01V4Mi1RuvJ7aPQd8U6pHTSy": "The file /testbed/gtts/tts.py has been edited. Here's the result of running `cat -n` on a snippet of /testbed/gtts/tts.py:\n    29\t    SLOW = True\n    30\t    NORMAL = None\n    31\t\n    32\t\n    33\tclass gTTS:\n    34\t    \"\"\"gTTS -- Google Text-to-Speech.\n    35\t\n    36\t    An interface to Google Translate's Text-to-Speech API.\n    37\t\n    38\t    Args:\n    39\t        text (string): The text to be read.\n    40\t        tld (string): Top-level domain for the Google Translate host,\n    41\t            i.e `https://translate.google.<tld>`. Different Google domains\n    42\t            can produce different localized 'accents' for a given\n    43\t            language. This is also useful when ``google.com`` might be blocked\n    44\t            within a network but a local or different Google host\n    45\t            (e.g. ``google.com.hk``) is not. Default is ``com``.\n    46\t        lang (string, optional): The language (IETF language tag) to\n    47\t            read the text in. Default is ``en``.\n    48\t        slow (bool, optional): Reads text more slowly. Defaults to ``False``.\n    49\t        lang_check (bool, optional): Strictly enforce an existing ``lang``,\n    50\t            to catch a language error early. If set to ``True``,\n    51\t            a ``ValueError`` is raised if ``lang`` doesn't exist.\n    52\t            Setting ``lang_check`` to ``False`` skips Web requests\n    53\t            (to validate language) and therefore speeds up instanciation.\n    54\t            Default is ``True``.\n    55\t        pre_processor_funcs (list): A list of zero or more functions that are\n    56\t            called to transform (pre-process) text before tokenizing. Those\n    57\t            functions must take a string and return a string. Defaults to::\n    58\t\n    59\t                [\n    60\t                    pre_processors.tone_marks,\n    61\t                    pre_processors.end_of_line,\n    62\t                    pre_processors.abbreviations,\n    63\t                    pre_processors.word_sub\n    64\t                ]\n    65\t\n    66\t        tokenizer_func (callable): A function that takes in a string and\n    67\t            returns a list of string (tokens). Defaults to::\n    68\t\n    69\t                Tokenizer([\n    70\t                    tokenizer_cases.tone_marks,\n    71\t                    tokenizer_cases.period_comma,\n    72\t                    tokenizer_cases.colon,\n    73\t                    tokenizer_cases.other_punctuation\n    74\t                ]).run\n    75\t        \n    76\t        timeout (float, optional): Timeout in seconds for the requests. Default is\n    77\t            None, which means the requests library's default timeout will be used.\n    78\t\n    79\t    See Also:\n    80\t        :doc:`Pre-processing and tokenizing <tokenizer>`\nReview the changes and make sure they are as expected. Edit the file again if necessary.",
+  "toolu_019Cqfnu7r464uvkDoUwq6LG": "Testing __version__ import:\nSuccess! __version__ = 2.5.4\n\nTesting timeout parameter:\nSuccess! timeout parameter works",
+  "toolu_01FV3vGdvp4jwPABpx1qT8hF": "File created successfully at: /testbed/comprehensive_test.py",
+  "toolu_01NkQwFrY6ukANR8ALCGjdZL": "Testing with gtts version: 2.5.4\n\nTest 1: Import __version__ using star import\nSuccess! __version__ = 2.5.4\n\nTest 2: Basic timeout parameter\nSuccess! timeout parameter set to: 5\n\nTest 3: Default timeout parameter\nSuccess! Default timeout parameter is: None\n\nTest 4: Verify timeout is passed to requests\nSuccess! Timeout parameter was passed: 10\n\nAll tests passed successfully!",
+  "toolu_019kJiiJGQU6Y1uQ1TRMxUzW": "Thank you for your work on this issue. Please carefully follow the steps below to help review your changes.\n\n1. If you made any changes to your code after running the reproduction script, please run the reproduction script again.\n  If the reproduction script is failing, please revisit your changes and make sure they are correct.\n  If you have already removed your reproduction script, please ignore this step.\n2. Remove your reproduction script (if you haven't done so already).\n3. If you have modified any TEST files, please revert them to the state they had before you started fixing the issue.\n  You can do this with `git checkout -- /path/to/test/file.py`. Use below <diff> to find the files you need to revert.\n4. Run the submit command again to confirm.\n\nHere is a list of all of your changes:\n\n<diff>\ndiff --git a/comprehensive_test.py b/comprehensive_test.py\nnew file mode 100644\nindex 0000000..21bf7fb\n--- /dev/null\n+++ b/comprehensive_test.py\n@@ -0,0 +1,61 @@\n+#!/usr/bin/env python3\n+# Comprehensive test script to verify the fixes\n+\n+import sys\n+from unittest.mock import patch, MagicMock\n+from gtts import gTTS, __version__\n+\n+print(f\"Testing with gtts version: {__version__}\")\n+\n+# Test 1: Import __version__ using star import\n+print(\"\\nTest 1: Import __version__ using star import\")\n+try:\n+    from gtts import *\n+    print(f\"Success! __version__ = {__version__}\")\n+except ImportError as e:\n+    print(f\"Error: {e}\")\n+    sys.exit(1)\n+\n+# Test 2: Basic timeout parameter\n+print(\"\\nTest 2: Basic timeout parameter\")\n+try:\n+    tts = gTTS(text='hello', timeout=5)\n+    print(f\"Success! timeout parameter set to: {tts.timeout}\")\n+except TypeError as e:\n+    print(f\"Error: {e}\")\n+    sys.exit(1)\n+\n+# Test 3: Default timeout parameter (None)\n+print(\"\\nTest 3: Default timeout parameter\")\n+try:\n+    tts = gTTS(text='hello')\n+    print(f\"Success! Default timeout parameter is: {tts.timeout}\")\n+except Exception as e:\n+    print(f\"Error: {e}\")\n+    sys.exit(1)\n+\n+# Test 4: Mock the requests.Session.send method to verify timeout is passed\n+print(\"\\nTest 4: Verify timeout is passed to requests\")\n+with patch('requests.Session.send') as mock_send:\n+    mock_response = MagicMock()\n+    mock_response.status_code = 200\n+    mock_response.iter_lines.return_value = [b'jQ1olc\",\"[\\\\\"AQVN2XdvFIJ5AW7LyVh9\\\\\"]']\n+    mock_send.return_value = mock_response\n+    \n+    # Test with timeout\n+    tts = gTTS(text='hello', timeout=10)\n+    try:\n+        for _ in tts.stream():\n+            pass\n+        \n+        # Check if timeout was passed to send\n+        args, kwargs = mock_send.call_args\n+        print(f\"Success! Timeout parameter was passed: {kwargs.get('timeout')}\")\n+        if kwargs.get('timeout') != 10:\n+            print(f\"Error: Expected timeout=10, got {kwargs.get('timeout')}\")\n+            sys.exit(1)\n+    except Exception as e:\n+        print(f\"Error during stream with timeout: {e}\")\n+        sys.exit(1)\n+\n+print(\"\\nAll tests passed successfully!\")\n\\ No newline at end of file\ndiff --git a/gtts/__init__.py b/gtts/__init__.py\nindex 680506a..7943168 100644\n--- a/gtts/__init__.py\n+++ b/gtts/__init__.py\n@@ -2,4 +2,4 @@\n from .version import __version__  # noqa: F401\n from .tts import gTTS, gTTSError\n \n-__all__ = [\"gTTS\", \"gTTSError\"]\n+__all__ = [\"gTTS\", \"gTTSError\", \"__version__\"]\ndiff --git a/gtts/tts.py b/gtts/tts.py\nindex a2a35d0..4a234c3 100644\n--- a/gtts/tts.py\n+++ b/gtts/tts.py\n@@ -72,6 +72,9 @@ class gTTS:\n                     tokenizer_cases.colon,\n                     tokenizer_cases.other_punctuation\n                 ]).run\n+        \n+        timeout (float, optional): Timeout in seconds for the requests. Default is\n+            None, which means the requests library's default timeout will be used.\n \n     See Also:\n         :doc:`Pre-processing and tokenizing <tokenizer>`\n@@ -116,6 +119,7 @@ class gTTS:\n                 tokenizer_cases.other_punctuation,\n             ]\n         ).run,\n+        timeout=None,\n     ):\n \n         # Debug\n@@ -156,6 +160,9 @@ class gTTS:\n         # Pre-processors and tokenizer\n         self.pre_processor_funcs = pre_processor_funcs\n         self.tokenizer_func = tokenizer_func\n+        \n+        # Timeout\n+        self.timeout = timeout\n \n     def _tokenize(self, text):\n         # Pre-clean\n@@ -259,7 +266,8 @@ class gTTS:\n                 with requests.Session() as s:\n                     # Send request\n                     r = s.send(\n-                        request=pr, proxies=urllib.request.getproxies(), verify=False\n+                        request=pr, proxies=urllib.request.getproxies(), verify=False,\n+                        timeout=self.timeout\n                     )\n \n                 log.debug(\"headers-%i: %s\", idx, r.request.headers)\ndiff --git a/reproduce_errors.py b/reproduce_errors.py\nnew file mode 100644\nindex 0000000..3873de4\n--- /dev/null\n+++ b/reproduce_errors.py\n@@ -0,0 +1,17 @@\n+#!/usr/bin/env python3\n+# Script to reproduce the errors mentioned in the PR description\n+\n+print(\"Testing __version__ import:\")\n+try:\n+    from gtts import __version__\n+    print(f\"Success! __version__ = {__version__}\")\n+except ImportError as e:\n+    print(f\"Error: {e}\")\n+\n+print(\"\\nTesting timeout parameter:\")\n+try:\n+    from gtts import gTTS\n+    tts = gTTS(text='hello', timeout=5)\n+    print(\"Success! timeout parameter works\")\n+except TypeError as e:\n+    print(f\"Error: {e}\")\n\\ No newline at end of file\n\n</diff>",
+  "toolu_01NzUnL4qmx5jhB1sedDGbSf": "Your command ran successfully and did not produce any output."
+ },
+ "gate": {
+  "tool_call_id": "toolu_01V5zVnNUwUqUfE2EnihFdbx",
+  "diff": "diff --git a/gtts/__init__.py b/gtts/__init__.py\nindex 680506a..7943168 100644\n--- a/gtts/__init__.py\n+++ b/gtts/__init__.py\n@@ -2,4 +2,4 @@\n from .version import __version__  # noqa: F401\n from .tts import gTTS, gTTSError\n \n-__all__ = [\"gTTS\", \"gTTSError\"]\n+__all__ = [\"gTTS\", \"gTTSError\", \"__version__\"]\ndiff --git a/gtts/tts.py b/gtts/tts.py\nindex a2a35d0..4a234c3 100644\n--- a/gtts/tts.py\n+++ b/gtts/tts.py\n@@ -72,6 +72,9 @@ class gTTS:\n                     tokenizer_cases.colon,\n                     tokenizer_cases.other_punctuation\n                 ]).run\n+        \n+        timeout (float, optional): Timeout in seconds for the requests. Default is\n+            None, which means the requests library's default timeout will be used.\n \n     See Also:\n         :doc:`Pre-processing and tokenizing <tokenizer>`\n@@ -116,6 +119,7 @@ class gTTS:\n                 tokenizer_cases.other_punctuation,\n             ]\n         ).run,\n+        timeout=None,\n     ):\n \n         # Debug\n@@ -156,6 +160,9 @@ class gTTS:\n         # Pre-processors and tokenizer\n         self.pre_processor_funcs = pre_processor_funcs\n         self.tokenizer_func = tokenizer_func\n+        \n+        # Timeout\n+        self.timeout = timeout\n \n     def _tokenize(self, text):\n         # Pre-clean\n@@ -259,7 +266,8 @@ class gTTS:\n                 with requests.Session() as s:\n                     # Send request\n                     r = s.send(\n-                        request=pr, proxies=urllib.request.getproxies(), verify=False\n+                        request=pr, proxies=urllib.request.getproxies(), verify=False,\n+                        timeout=self.timeout\n                     )\n \n                 log.debug(\"headers-%i: %s\", idx, r.request.headers)\n",
+  "diff_source": "dataset patch (verified against trajectory)"
+ },
+ "data_notes": []
+}

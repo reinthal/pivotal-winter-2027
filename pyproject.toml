@@ -10,6 +10,8 @@ requires-python = ">=3.14"
 dependencies = [
     "duckdb>=2.0.0",
     "huggingface-hub>=2.4.0",
+    "inspect-ai>=0.3.289",
+    "openai>=3.51.0",
     "pyarrow>=26.0.1",
 ]
 

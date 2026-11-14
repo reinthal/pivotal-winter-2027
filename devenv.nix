@@ -25,9 +25,16 @@
     echo hello from $GREET
   '';
 
+  # `run` starts the trajectory review UI on the good-runs subset.
+  # Extra arguments go to the server, e.g. `run --port 9000` or `run --raw`.
+  scripts.run.exec = ''
+    cd "$DEVENV_ROOT" && exec uv run scripts/serve_viewer.py "$@"
+  '';
+
   # https://devenv.sh/basics/
   enterShell = ''
     hello         # Run scripts directly
+    echo "Type 'run' to start the trajectory review UI (http://127.0.0.1:8765/)"
     git --version # Use packages
   '';
 
